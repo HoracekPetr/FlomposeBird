@@ -17,6 +17,8 @@ import kotlin.time.Duration.Companion.milliseconds
 class GameViewModel : ViewModel() {
     private var gameDataInit = false
 
+    private var gameRunning = true
+
     private var screenHeight: Int = 0
     private var screenWidth: Int = 0
 
@@ -47,14 +49,17 @@ class GameViewModel : ViewModel() {
             gameDataInit = true
 
             startGame()
-            startBird()
         }
     }
 
     private fun startGame() {
         viewModelScope.launch {
-            while (true) {
+            while (gameRunning) {
                 delay(GAME_SPEED)
+
+                _bird.update {
+                    it?.copy(y = it.y + 12)
+                }
 
                 _firstPipe.update {
                     it?.copy(
@@ -79,16 +84,9 @@ class GameViewModel : ViewModel() {
                         getPipe(x = screenWidth + 300)
                     }
                 }
-            }
-        }
-    }
 
-    private fun startBird() {
-        viewModelScope.launch {
-            while (true) {
-                delay(GAME_SPEED)
-                _bird.update {
-                    it?.copy(y = it.y + 12)
+                if(_bird.value?.x == _firstPipe.value?.currentX && _bird.value?.y in 300..800) {
+                    gameRunning = false
                 }
             }
         }
