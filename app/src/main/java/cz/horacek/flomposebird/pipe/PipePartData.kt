@@ -1,7 +1,8 @@
 package cz.horacek.flomposebird.pipe
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
+import cz.horacek.flomposebird.R
 
 @Composable
 fun Pipe(
@@ -24,10 +27,12 @@ fun Pipe(
             .offset { IntOffset(x = pipeData.currentX.value, y = 0) }
     ) {
         PipePart(
-            pipePartData = pipeData.topPipePart
+            pipePartData = pipeData.topPipePart,
+            isBottom = false
         )
         PipePart(
             pipePartData = pipeData.bottomPipePart,
+            isBottom = true
         )
     }
 }
@@ -36,9 +41,10 @@ fun Pipe(
 private fun PipePart(
     modifier: Modifier = Modifier,
     pipePartData: PipePartData,
+    isBottom: Boolean
 ) {
     with(LocalDensity.current) {
-        Canvas(
+        Column(
             modifier = modifier
                 .width(pipePartData.width.toDp())
                 .height(pipePartData.height.toDp())
@@ -46,7 +52,31 @@ private fun PipePart(
                     IntOffset(0, pipePartData.y)
                 }
         ) {
-            drawRect(Color.Green)
+            if (isBottom) {
+                Image(
+                    modifier = modifier,
+                    painter = painterResource(id = R.drawable.pipe_top),
+                    contentScale = ContentScale.FillBounds,
+                    contentDescription = null
+                )
+            }
+
+            Image(
+                modifier = modifier
+                    .weight(1f),
+                painter = painterResource(id = R.drawable.pipe_body),
+                contentScale = ContentScale.FillBounds,
+                contentDescription = null
+            )
+
+            if (!isBottom) {
+                Image(
+                    modifier = modifier,
+                    painter = painterResource(id = R.drawable.pipe_top),
+                    contentScale = ContentScale.FillBounds,
+                    contentDescription = null
+                )
+            }
         }
     }
 }

@@ -19,14 +19,11 @@ import kotlin.time.Duration.Companion.milliseconds
 class GameViewModel : ViewModel() {
     private var gameDataInit = false
 
-    private var gameRunning = true
+    private val _gameRunning = MutableStateFlow(true)
+    val gameRunning = _gameRunning.asStateFlow()
 
     private var screenHeight: Int = 0
     private var screenWidth: Int = 0
-
-    private val GAME_SPEED = 17.milliseconds // Simulate 60FPS
-
-    private val GAP_SIZE = 600
 
     private val _firstPipe = MutableStateFlow<PipeData?>(null)
     val firstPipe = _firstPipe.asStateFlow()
@@ -45,23 +42,24 @@ class GameViewModel : ViewModel() {
             screenHeight = height - GROUND_PADDING
             screenWidth = width
 
-
-            _firstPipe.update { getPipe(screenWidth) }
-            _secondPipe.update { getPipe(screenWidth + 800) }
-
-            _bird.update { initBird() }
-
-            _gameScore.update { 0 }
-
-            gameDataInit = true
-
             startGame()
         }
     }
 
-    private fun startGame() {
+    fun startGame() {
+        _gameRunning.update { true }
+
+        _firstPipe.update { getPipe(screenWidth) }
+        _secondPipe.update { getPipe(screenWidth + 800) }
+
+        _bird.update { initBird() }
+
+        _gameScore.update { 0 }
+
+        gameDataInit = true
+
         viewModelScope.launch {
-            while (gameRunning) {
+            while (_gameRunning.value) {
                 delay(GAME_SPEED)
 
                 applyGravityOnBird()
@@ -102,7 +100,7 @@ class GameViewModel : ViewModel() {
         val isBirdWithinSecondPipe = _bird.value?.isWithinPipe(_secondPipe.value) == true
 
         if (isBirdWithinFirstPipe || isBirdWithinSecondPipe) {
-            gameRunning = false
+            _gameRunning.update { false }
             Log.d("Birb", "BONK")
         }
     }
@@ -132,5 +130,8 @@ class GameViewModel : ViewModel() {
     companion object {
         private const val GRAVITY_FORCE_VALUE = 12
         private const val GROUND_PADDING = 180
+        private const val GAP_SIZE = 600
+
+        private val GAME_SPEED = 17.milliseconds // Simulate 60FPS
     }
 }
