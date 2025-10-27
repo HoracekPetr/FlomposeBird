@@ -1,5 +1,7 @@
 package cz.horacek.flomposebird.game
 
+import android.util.Log
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.horacek.flomposebird.bird.BirdData
@@ -35,9 +37,12 @@ class GameViewModel : ViewModel() {
     private val _bird = MutableStateFlow<BirdData?>(null)
     val bird = _bird.asStateFlow()
 
+    private val _gameScore = MutableStateFlow(0)
+    val gameScore = _gameScore.asStateFlow()
+
     fun init(height: Int, width: Int) {
         if (!gameDataInit) {
-            screenHeight = height
+            screenHeight = height - GROUND_PADDING
             screenWidth = width
 
 
@@ -45,6 +50,8 @@ class GameViewModel : ViewModel() {
             _secondPipe.update { getPipe(screenWidth + 800) }
 
             _bird.update { initBird() }
+
+            _gameScore.update { 0 }
 
             gameDataInit = true
 
@@ -57,44 +64,46 @@ class GameViewModel : ViewModel() {
             while (gameRunning) {
                 delay(GAME_SPEED)
 
-                _bird.update {
-                    it?.copy(y = it.y + 12)
-                }
+                applyGravityOnBird()
 
-                _firstPipe.update {
-                    it?.copy(
-                        currentX = it.currentX - 5
-                    )
-                }
+                movePipe(pipe = _firstPipe)
+                movePipe(pipe = _secondPipe)
 
-                _secondPipe.update {
-                    it?.copy(
-                        currentX = it.currentX - 5
-                    )
-                }
-
-                if ((_firstPipe.value?.currentX ?: 0) < -200) {
-                    _firstPipe.update {
-                        getPipe(x = screenWidth + 300)
-                    }
-                }
-
-                if ((_secondPipe.value?.currentX ?: 0) < -200) {
-                    _secondPipe.update {
-                        getPipe(x = screenWidth + 300)
-                    }
-                }
-
-                if(_bird.value?.x == _firstPipe.value?.currentX && _bird.value?.y in 300..800) {
-                    gameRunning = false
-                }
+                checkForCollisions()
             }
         }
     }
 
+    fun movePipe(pipe: MutableStateFlow<PipeData?>) {
+        pipe.value?.moveXLeft()
+
+        if ((pipe.value?.currentX?.value ?: 0) < -200) {
+            pipe.update {
+                getPipe(x = screenWidth + 300)
+            }
+        }
+
+        if (_bird.value?.isPastThePipe(pipe.value) == true && (pipe.value?.points ?: 0) > 0) {
+            _gameScore.update { _gameScore.value + 1 }
+            pipe.update { pipe.value?.copy(points = 0) }
+        }
+    }
+
+    fun applyGravityOnBird() {
+        _bird.value?.moveBird(GRAVITY_FORCE_VALUE)
+    }
+
     fun liftBird() {
-        _bird.update {
-            it?.copy(y = it.y - 200)
+        _bird.value?.moveBird()
+    }
+
+    private fun checkForCollisions() {
+        val isBirdWithinFirstPipe = _bird.value?.isWithinPipe(_firstPipe.value) == true
+        val isBirdWithinSecondPipe = _bird.value?.isWithinPipe(_secondPipe.value) == true
+
+        if (isBirdWithinFirstPipe || isBirdWithinSecondPipe) {
+            gameRunning = false
+            Log.d("Birb", "BONK")
         }
     }
 
@@ -103,7 +112,7 @@ class GameViewModel : ViewModel() {
         val bottomY = topHeight + GAP_SIZE
         val bottomHeight = screenHeight - bottomY
         return PipeData(
-            currentX = x,
+            currentX = mutableIntStateOf(x),
             topPipePart = PipePartData(y = 0, width = 200, height = topHeight),
             bottomPipePart = PipePartData(
                 y = bottomY,
@@ -116,7 +125,12 @@ class GameViewModel : ViewModel() {
     private fun initBird(): BirdData {
         return BirdData(
             x = 50,
-            y = screenHeight / 2
+            y = mutableIntStateOf(screenHeight / 2)
         )
+    }
+
+    companion object {
+        private const val GRAVITY_FORCE_VALUE = 12
+        private const val GROUND_PADDING = 180
     }
 }

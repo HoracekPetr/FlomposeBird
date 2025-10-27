@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -20,7 +21,7 @@ fun Pipe(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .offset { IntOffset(x = pipeData.currentX, y = 0) }
+            .offset { IntOffset(x = pipeData.currentX.value, y = 0) }
     ) {
         PipePart(
             pipePartData = pipeData.topPipePart
@@ -51,13 +52,44 @@ private fun PipePart(
 }
 
 data class PipeData(
-    val currentX: Int,
+    var currentX: MutableState<Int>,
     val topPipePart: PipePartData,
-    val bottomPipePart: PipePartData
-)
+    val bottomPipePart: PipePartData,
+    val points: Int = 1
+) {
+    private fun getPipeRect(x: Int, y: Int, width: Int, height: Int): PipeRect {
+        return PipeRect(
+            left = x,
+            right = x + width,
+            top = y,
+            bottom = y + height
+        )
+    }
+
+    private fun getPipePartRect(pipePartData: PipePartData) = getPipeRect(
+        x = currentX.value,
+        y = pipePartData.y,
+        width = pipePartData.width,
+        height = pipePartData.height
+    )
+
+    fun moveXLeft(newX: Int = 5) {
+        currentX.value -= newX
+    }
+
+    fun getTopPipeRect() = getPipePartRect(topPipePart)
+    fun getBottomPipeRect() = getPipePartRect(bottomPipePart)
+}
 
 data class PipePartData(
     val y: Int,
     val width: Int,
     val height: Int
+)
+
+data class PipeRect(
+    val left: Int,
+    val right: Int,
+    val top: Int,
+    val bottom: Int
 )
